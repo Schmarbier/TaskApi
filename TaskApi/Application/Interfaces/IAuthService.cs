@@ -4,7 +4,7 @@ namespace TaskApi.Application.Interfaces
 {
     public interface IAuthService
     {
-        string GenerarToken(Usuario usuario);
+        string GenerarToken(User usuario);
         string GenerarRefreshToken();
     }
 }

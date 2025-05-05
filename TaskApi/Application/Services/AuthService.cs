@@ -17,7 +17,7 @@ namespace TaskApi.Application.Services
             _config = configuration;
         }
 
-        public string GenerarToken(Usuario usuario)
+        public string GenerarToken(User usuario)
         {
             var claims = new[]
             {

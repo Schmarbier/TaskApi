@@ -27,18 +27,18 @@ namespace TaskApi.Infraestructure.Security
                 using var scope = _scopeFactory.CreateScope();
 
                 var db = scope.ServiceProvider.GetRequiredService<ApiDbContext>();
-                var user = await db.Usuarios.FindAsync(int.Parse(userId));
+                var user = await db.Users.FindAsync(int.Parse(userId));
 
-                var handler = new JwtSecurityTokenHandler();
+                //var handler = new JwtSecurityTokenHandler();
 
-                var rawToken = context.HttpContext.Request.Headers["Authorization"]
-                    .ToString()
-                    .Replace("Bearer ", "");
+                //var rawToken = context.HttpContext.Request.Headers["Authorization"]
+                //    .ToString()
+                //    .Replace("Bearer ", "");
 
-                if (user == null || user.Token != rawToken)
-                {
-                    context.Fail("Token inválido o revocado");
-                }
+                //if (user == null || user.Token != rawToken)
+                //{
+                //    context.Fail("Token inválido o revocado");
+                //}
             };
         }
     }

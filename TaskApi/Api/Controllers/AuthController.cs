@@ -12,144 +12,255 @@ using System.Security.Claims;
 using System.Text;
 using TaskApi.Api.Responses;
 using TaskApi.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TaskApi.Api.Controllers
 {
+    public class RegisterRequest
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public bool IsAdmin { get; set; } = false;
+    }
+
+    public class LoginRequest
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+
     [ApiController]
     [Route("api/[controller]")]
     public class AuthController : Controller
     {
-        private readonly IAuthService _authService;
-        private readonly ApiDbContext _context;
-        private readonly IConfiguration _config;
+        private readonly IIdentityService _identityService;
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthService authService, ApiDbContext context, IConfiguration config, ILogger<AuthController> logger)
+        public AuthController(IIdentityService identityService, ILogger<AuthController> logger)
         {
-            _authService = authService;
-            _context = context;
-            _config = config;
+            _identityService = identityService;
             _logger = logger;
         }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(RegisterRequest request)
         {
-            _logger.LogInformation("Login attempt for user: {Email}", request.Email);
-            
-            var user = await _context.Usuarios.SingleOrDefaultAsync(u => u.Email == request.Email);
-            if (user == null) return Unauthorized();
+            var result = await _identityService.CreateUserAsync(
+                request.Username,
+                request.Email,
+                request.Password,
+                request.IsAdmin ? "Admin" : "User");
 
-            var hasher = new PasswordHasher<Usuario>();
-            var result = hasher.VerifyHashedPassword(user, user.Password, request.Password);
+            if (!result.Success)
+            {
+                return BadRequest(new { message = "Error al registrar el usuario. El email o username ya está en uso." });
+            }
 
-            if (result == PasswordVerificationResult.Failed) return Unauthorized();
+            return Ok(new { userId = result.UserId });
+        }
 
-            var accessToken = _authService.GenerarToken(user);
-            var refreshToken = _authService.GenerarRefreshToken();
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginRequest request)
+        {
+            var result = await _identityService.LoginAsync(request.Email, request.Password);
 
-            user.Token = accessToken;
-            user.RefreshToken = refreshToken;
-            var tokenExpryTime = DateTime.Now.AddDays(7);
-            user.RefreshTokenExpiryTime = tokenExpryTime;
-            await _context.SaveChangesAsync();
+            if (!result.Success)
+            {
+                return BadRequest(new { message = "Email o contraseña incorrectos" });
+            }
 
-            _logger.LogInformation("Login successful for user: {Email}", user.Email);
+            SetRefreshTokenInCookie(result.RefreshToken);
 
             return Ok(new
             {
-                token = accessToken,
-                refreshToken,
-                tokenExpire = tokenExpryTime
+                userId = result.UserId,
+                token = result.Token,
+                refreshToken = result.RefreshToken
             });
         }
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken()
         {
-            var existe = await _context.Usuarios.AnyAsync(u => u.Email == request.Email);
-            if (existe) return BadRequest("El email ya está registrado.");
+            var refreshToken = Request.Cookies["refreshToken"];
+            var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
-            var user = new Usuario
+            if (string.IsNullOrEmpty(refreshToken) || string.IsNullOrEmpty(token))
             {
-                Email = request.Email
+                return BadRequest(new { message = "Token o refresh token no proporcionados" });
+            }
+
+            var result = await _identityService.RefreshTokenAsync(token, refreshToken);
+
+            if (!result.Success)
+            {
+                return Unauthorized(new { message = "Token inválido o expirado" });
+            }
+
+            SetRefreshTokenInCookie(result.RefreshToken);
+
+            return Ok(new
+            {
+                userId = result.UserId,
+                token = result.Token,
+                refreshToken = result.RefreshToken
+            });
+        }
+
+        [Authorize]
+        [HttpPost("revoke-token")]
+        public async Task<IActionResult> RevokeToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return BadRequest(new { message = "Refresh token no proporcionado" });
+            }
+
+            var result = await _identityService.RevokeRefreshTokenAsync(refreshToken);
+
+            if (!result)
+            {
+                return NotFound(new { message = "Token no encontrado" });
+            }
+
+            return Ok(new { message = "Token revocado" });
+        }
+
+        private void SetRefreshTokenInCookie(string refreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddDays(7),
+                SameSite = SameSiteMode.Strict,
+                Secure = true // Solo establecer a true en producción con HTTPS
             };
 
-            var hasher = new PasswordHasher<Usuario>();
-            user.Password = hasher.HashPassword(user, request.Password);
-
-            _context.Usuarios.Add(user);
-            await _context.SaveChangesAsync();
-
-            return Ok("Usuario registrado correctamente.");
+            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
 
-        [HttpPost("refresh")]
-        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
-        {
-            if(ModelState.IsValid == false) return BadRequest(ModelState);
+        //[HttpPost("login")]
+        //public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        //{
+        //    _logger.LogInformation("Login attempt for user: {Email}", request.Email);
 
-            if (!IsJwt(request.Token))
-            {
-                return BadRequest("El token no tiene un formato JWT válido.");
-            }
+        //    var user = await _context.Usuarios.SingleOrDefaultAsync(u => u.Email == request.Email);
+        //    if (user == null) return Unauthorized();
 
-            var principal = GetPrincipalFromExpiredToken(request.Token);
-            var email = principal?.Identity?.Name;
+        //    var hasher = new PasswordHasher<User>();
+        //    var result = hasher.VerifyHashedPassword(user, user.Password, request.Password);
 
-            var user = await _context.Usuarios.SingleOrDefaultAsync(x => x.Email == email);
-            if (user == null ||
-                user.RefreshToken != request.RefreshToken ||
-                user.RefreshTokenExpiryTime <= DateTime.Now)
-            {
-                return Unauthorized("Token inválido o expirado");
-            }
+        //    if (result == PasswordVerificationResult.Failed) return Unauthorized();
 
-            var newAccessToken = _authService.GenerarToken(user);
-            var newRefreshToken = _authService.GenerarRefreshToken();
+        //    var accessToken = _authService.GenerarToken(user);
+        //    var refreshToken = _authService.GenerarRefreshToken();
 
-            user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.Now.AddDays(7);
-            await _context.SaveChangesAsync();
+        //    user.Token = accessToken;
+        //    user.RefreshToken = refreshToken;
+        //    var tokenExpryTime = DateTime.Now.AddDays(7);
+        //    user.RefreshTokenExpiryTime = tokenExpryTime;
+        //    await _context.SaveChangesAsync();
 
-            return Ok(ApiResponse.Ok(new 
-            {
-                token = newAccessToken,
-                refreshToken = newRefreshToken
-            }));
-        }
+        //    _logger.LogInformation("Login successful for user: {Email}", user.Email);
 
-        private bool IsJwt(string token)
-        {
-            return !string.IsNullOrWhiteSpace(token)
-                && token.Count(c => c == '.') == 2;
-        }
+        //    return Ok(new
+        //    {
+        //        token = accessToken,
+        //        refreshToken,
+        //        tokenExpire = tokenExpryTime
+        //    });
+        //}
 
-        private ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
-        {
-            var tokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = _config["Jwt:Issuer"],
-                ValidateAudience = true,
-                ValidAudience = _config["Jwt:Audience"],
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(_config["Jwt:Key"])),
-                ValidateLifetime = false // clave: permitir tokens expirados
-            };
+        //[HttpPost("register")]
+        //public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        //{
+        //    var existe = await _context.Users.AnyAsync(u => u.Email == request.Email);
+        //    if (existe) return BadRequest("El email ya está registrado.");
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+        //    var user = new User
+        //    {
+        //        Email = request.Email
+        //    };
 
-            if (securityToken is not JwtSecurityToken jwtSecurityToken ||
-                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-            {
-                throw new SecurityTokenException("Token inválido");
-            }
+        //    var hasher = new PasswordHasher<User>();
+        //    user.PasswordHash = hasher.HashPassword(user, request.Password);
 
-            return principal;
-        }
+        //    _context.Users.Add(user);
+        //    await _context.SaveChangesAsync();
+
+        //    return Ok("Usuario registrado correctamente.");
+        //}
+
+        //[HttpPost("refresh")]
+        //public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
+        //{
+        //    if(ModelState.IsValid == false) return BadRequest(ModelState);
+
+        //    if (!IsJwt(request.Token))
+        //    {
+        //        return BadRequest("El token no tiene un formato JWT válido.");
+        //    }
+
+        //    var principal = GetPrincipalFromExpiredToken(request.Token);
+        //    var email = principal?.Identity?.Name;
+
+        //    var user = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+        //    if (user == null ||
+        //        user.RefreshToken != request.RefreshToken ||
+        //        user.RefreshTokenExpiryTime <= DateTime.Now)
+        //    {
+        //        return Unauthorized("Token inválido o expirado");
+        //    }
+
+        //    var newAccessToken = _authService.GenerarToken(user);
+        //    var newRefreshToken = _authService.GenerarRefreshToken();
+
+        //    user.RefreshToken = newRefreshToken;
+        //    user.RefreshTokenExpiryTime = DateTime.Now.AddDays(7);
+        //    await _context.SaveChangesAsync();
+
+        //    return Ok(ApiResponse.Ok(new 
+        //    {
+        //        token = newAccessToken,
+        //        refreshToken = newRefreshToken
+        //    }));
+        //}
+
+        //private bool IsJwt(string token)
+        //{
+        //    return !string.IsNullOrWhiteSpace(token)
+        //        && token.Count(c => c == '.') == 2;
+        //}
+
+        //private ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
+        //{
+        //    var tokenValidationParameters = new TokenValidationParameters
+        //    {
+        //        ValidateIssuer = true,
+        //        ValidIssuer = _config["Jwt:Issuer"],
+        //        ValidateAudience = true,
+        //        ValidAudience = _config["Jwt:Audience"],
+        //        ValidateIssuerSigningKey = true,
+        //        IssuerSigningKey = new SymmetricSecurityKey(
+        //            Encoding.UTF8.GetBytes(_config["Jwt:Key"])),
+        //        ValidateLifetime = false // clave: permitir tokens expirados
+        //    };
+
+        //    var tokenHandler = new JwtSecurityTokenHandler();
+        //    var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+
+        //    if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+        //        !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+        //    {
+        //        throw new SecurityTokenException("Token inválido");
+        //    }
+
+        //    return principal;
+        //}
 
     }
 }

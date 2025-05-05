@@ -4,9 +4,9 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using TaskApi.Application.Interfaces;
-using TaskApi.Infraestructure.Domain.Entities;
+using TaskApi.Domain.Entities;
 
-namespace TaskApi.Infraestructure.Services
+namespace TaskApi.Application.Services
 {
     public class AuthService : IAuthService
     {

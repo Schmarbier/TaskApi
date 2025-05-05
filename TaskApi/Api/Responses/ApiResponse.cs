@@ -1,4 +1,4 @@
-﻿namespace TaskApi.Application.Responses
+﻿namespace TaskApi.Api.Responses
 {
     public class ApiResponse : ApiResponse<object> 
     { 

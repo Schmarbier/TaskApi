@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using TaskApi.Application.Interfaces;
-using TaskApi.Infraestructure.Domain.Entities;
 using TaskApi.Infraestructure.Data;
 using Microsoft.EntityFrameworkCore;
 using TaskApi.Application.DTOs;
@@ -11,9 +10,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using TaskApi.Application.Responses;
+using TaskApi.Api.Responses;
+using TaskApi.Domain.Entities;
 
-namespace TaskApi.Controllers
+namespace TaskApi.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -59,7 +59,7 @@ namespace TaskApi.Controllers
             return Ok(new
             {
                 token = accessToken,
-                refreshToken = refreshToken,
+                refreshToken,
                 tokenExpire = tokenExpryTime
             });
         }

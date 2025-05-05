@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TaskApi.Application.Responses;
+using TaskApi.Api.Responses;
 
-namespace TaskApi.Controllers
+namespace TaskApi.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -21,7 +21,7 @@ namespace TaskApi.Controllers
         {
             _logger.LogInformation($"Usuario obtiene su informacion");
             var email = User.Identity?.Name;
-            return Ok(ApiResponse.Ok(new { email = email }));
+            return Ok(ApiResponse.Ok(new { email }));
         }
     }
 }

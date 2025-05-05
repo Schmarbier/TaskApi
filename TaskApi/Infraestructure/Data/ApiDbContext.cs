@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
-using TaskApi.Infraestructure.Domain.Entities;
+using TaskApi.Domain.Entities;
 
 namespace TaskApi.Infraestructure.Data
 {

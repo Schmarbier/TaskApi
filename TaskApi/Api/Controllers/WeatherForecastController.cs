@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
-namespace TaskApi.Controllers;
+namespace TaskApi.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]

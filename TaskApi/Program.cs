@@ -4,12 +4,12 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using TaskApi.Application.Interfaces;
 using TaskApi.Infraestructure.Data;
-using TaskApi.Infraestructure.Services;
 using Microsoft.OpenApi.Models;
 using TaskApi.Infraestructure.Security;
-using TaskApi.Middleware;
 using Serilog;
-using TaskApi.Middleware.Log;
+using TaskApi.Application.Services;
+using TaskApi.Api.Middleware;
+using TaskApi.Api.Middleware.Log;
 
 var builder = WebApplication.CreateBuilder(args);
 

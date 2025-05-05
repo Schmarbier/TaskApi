@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Text.Json;
-using TaskApi.Application.Responses;
+using TaskApi.Api.Responses;
 
-namespace TaskApi.Middleware
+namespace TaskApi.Api.Middleware
 {
     public class ErrorHandlingMiddleware
     {

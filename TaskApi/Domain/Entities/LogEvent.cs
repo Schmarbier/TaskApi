@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace TaskApi.Infraestructure.Domain.Entities
+namespace TaskApi.Domain.Entities
 {
     public class LogEvent
     {

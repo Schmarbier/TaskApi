@@ -1,6 +1,6 @@
 ﻿using Serilog;
 
-namespace TaskApi.Infraestructure.Services
+namespace TaskApi.Application.Services
 {
     public static class AppExtension
     {

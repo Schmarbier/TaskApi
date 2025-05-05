@@ -1,4 +1,4 @@
-﻿using TaskApi.Infraestructure.Domain.Entities;
+﻿using TaskApi.Domain.Entities;
 
 namespace TaskApi.Application.Interfaces
 {

@@ -10,6 +10,9 @@ using Serilog;
 using TaskApi.Application.Services;
 using TaskApi.Api.Middleware;
 using TaskApi.Api.Middleware.Log;
+using System.Configuration;
+using TaskApi.Infraestructure.Identity;
+using TaskApi.Infraestructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,23 +66,36 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<JwtBearerEventsHandler>();
 
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidateAudience = true,
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-            ValidateLifetime = true
-        };
+// Configuración JWT
+var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(jwtSettingsSection);
 
-        options.EventsType = typeof(JwtBearerEventsHandler);
-    });
+var jwtSettings = jwtSettingsSection.Get<JwtSettings>();
+var key = Encoding.ASCII.GetBytes(jwtSettings.Secret);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<ApiDbContextInitializer>();
 
 var app = builder.Build();
 
@@ -88,6 +104,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var initializer = scope.ServiceProvider.GetRequiredService<ApiDbContextInitializer>();
+        await initializer.InitializeDatabaseAsync();
+        await initializer.SeedDatabaseAsync();
+    }
 }
 
 app.UseHttpsRedirection();

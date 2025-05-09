@@ -1,11 +1,13 @@
-﻿namespace TaskApi.Domain.Entities
+﻿using TaskApi.Domain.Enums;
+
+namespace TaskApi.Domain.Entities
 {
     public class Task : AuditableEntity
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public TaskStatus Status { get; set; }
+        public Enums.TaskStatus Status { get; set; }
         public int Priority { get; set; }
         public DateTime? DueDate { get; set; }
 

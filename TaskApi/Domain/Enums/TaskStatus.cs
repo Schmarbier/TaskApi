@@ -1,4 +1,4 @@
-﻿namespace TaskApi.Domain
+﻿namespace TaskApi.Domain.Enums
 {
     public enum TaskStatus
     {

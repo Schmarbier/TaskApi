@@ -13,6 +13,7 @@ using System.Text;
 using TaskApi.Api.Responses;
 using TaskApi.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Serilog.Context;
 
 namespace TaskApi.Api.Controllers
 {
@@ -64,21 +65,27 @@ namespace TaskApi.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequest request)
         {
-            var result = await _identityService.LoginAsync(request.Email, request.Password);
-
-            if (!result.Success)
+            using (LogContext.PushProperty("UserEmail", request.Email))
+            using (LogContext.PushProperty("Action", "Login"))
             {
-                return BadRequest(new { message = "Email o contraseña incorrectos" });
+                _logger.LogInformation("Intento de login para usuario {UserEmail}", request.Email);
+
+                var result = await _identityService.LoginAsync(request.Email, request.Password);
+
+                if (!result.Success)
+                {
+                    return BadRequest(new { message = "Email o contraseña incorrectos" });
+                }
+
+                SetRefreshTokenInCookie(result.RefreshToken);
+
+                return Ok(new
+                {
+                    userId = result.UserId,
+                    token = result.Token,
+                    refreshToken = result.RefreshToken
+                });
             }
-
-            SetRefreshTokenInCookie(result.RefreshToken);
-
-            return Ok(new
-            {
-                userId = result.UserId,
-                token = result.Token,
-                refreshToken = result.RefreshToken
-            });
         }
 
         [HttpPost("refresh-token")]

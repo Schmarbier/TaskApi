@@ -9,7 +9,6 @@ using TaskApi.Infraestructure.Security;
 using Serilog;
 using TaskApi.Application.Services;
 using TaskApi.Api.Middleware;
-using TaskApi.Api.Middleware.Log;
 using System.Configuration;
 using TaskApi.Infraestructure.Identity;
 using TaskApi.Infraestructure.Persistence;
@@ -63,7 +62,7 @@ builder.Services.AddDbContext<ApiDbContext>(options =>
 
 /// Servicios
 builder.Services.AddScoped<IAuthService, AuthService>();
-
+builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<JwtBearerEventsHandler>();
 
 // Configuración JWT
@@ -119,8 +118,8 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 
 /// Middlewares
-app.UseMiddleware<LogUserIdMiddleware>();
-app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
+//app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseAuthorization();
 

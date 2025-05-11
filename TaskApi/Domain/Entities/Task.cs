@@ -1,4 +1,5 @@
-﻿using TaskApi.Domain.Enums;
+﻿using TaskApi.Domain.Common;
+using TaskApi.Domain.Enums;
 
 namespace TaskApi.Domain.Entities
 {

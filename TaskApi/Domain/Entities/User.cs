@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using TaskApi.Domain.Common;
 
 namespace TaskApi.Domain.Entities
 {

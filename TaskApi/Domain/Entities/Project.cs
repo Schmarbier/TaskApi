@@ -1,4 +1,6 @@
-﻿namespace TaskApi.Domain.Entities
+﻿using TaskApi.Domain.Common;
+
+namespace TaskApi.Domain.Entities
 {
     public class Project : AuditableEntity
     {

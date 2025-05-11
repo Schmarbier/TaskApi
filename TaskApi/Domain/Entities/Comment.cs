@@ -1,4 +1,5 @@
 ﻿using System.Net.Mail;
+using TaskApi.Domain.Common;
 
 namespace TaskApi.Domain.Entities
 {

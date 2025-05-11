@@ -1,4 +1,4 @@
-﻿namespace TaskApi.Domain.Entities
+﻿namespace TaskApi.Domain.Common
 {
     public abstract class AuditableEntity
     {

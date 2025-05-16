@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace TaskApi.Application.Features.Users.Commands.RefreshToken
 {
-    public class RefreshtokenValidator : AbstractValidator<RefreshTokenCommand>
+    public class GetRefreshtokenValidator : AbstractValidator<GetRefreshTokenCommand>
     {
-        public RefreshtokenValidator()
+        public GetRefreshtokenValidator()
         {
             RuleFor(x => x.RefreshToken).NotEmpty()
                 .WithMessage("El refresh token es requerido");

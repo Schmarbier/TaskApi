@@ -6,18 +6,22 @@ using System.Text;
 using System.Threading.Tasks;
 using TaskApi.Application.Common.Interfaces;
 using TaskApi.Application.DTOs;
+using TaskApi.Application.Features.Auth.Queries.GetRefreshToken;
 using TaskApi.Application.Interfaces;
 using TaskApi.Domain.Entities;
 
 namespace TaskApi.Application.Features.Users.Commands.RefreshToken
 {
-    public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, AuthenticationResult>
+    public class GetRefreshTokenHandler : IRequestHandler<RefreshTokenCommand, AuthenticationResult>
     {
         private readonly ITokenService _tokenService;
-        private readonly IRefreshTokenRepository _refreshTokenRepository;
+        private readonly ISender _mediator;
         private readonly ICurrentUserService _currentUserService;
-        public RefreshTokenHandler(ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository, ICurrentUserService currentUserService)
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
+
+        public GetRefreshTokenHandler(IMediator mediator, ITokenService tokenService, IRefreshTokenRepository refreshTokenRepository, ICurrentUserService currentUserService)
         {
+            _mediator = mediator;
             _tokenService = tokenService;
             _refreshTokenRepository = refreshTokenRepository;
             _currentUserService = currentUserService;
@@ -26,10 +30,7 @@ namespace TaskApi.Application.Features.Users.Commands.RefreshToken
         public async Task<AuthenticationResult> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
         {
 
-            var existingToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken, cancellationToken);
-
-            if (existingToken == null || !existingToken.IsActive)
-                throw new UnauthorizedAccessException("Refresh token inválido");
+            var existingToken = await _mediator.Send(new GetRefreshTokenQuery(request.RefreshToken), cancellationToken);
 
             var newRefreshToken = _tokenService.GenerateRefreshToken();
             newRefreshToken.CreatedByIp = _currentUserService.IpAddress;

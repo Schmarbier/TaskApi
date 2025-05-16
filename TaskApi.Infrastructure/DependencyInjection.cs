@@ -91,9 +91,14 @@ namespace TaskApi.Infrastructure
                 };
             });
 
-
-
             return services;
+        }
+
+        public static async Task InitializeInfrastructureAsync(this IServiceProvider services)
+        {
+            using var scope = services.CreateScope();
+            var initializer = scope.ServiceProvider.GetRequiredService<ApplicationDbContextInitializer>();
+            await initializer.SeedDatabaseAsync();
         }
     }
 }

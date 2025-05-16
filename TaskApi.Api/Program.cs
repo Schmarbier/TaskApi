@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using TaskApi.Api.Middleware;
+using TaskApi.Api.Middleware.ExceptionHandling;
 using TaskApi.Application;
 using TaskApi.Infrastructure;
+using TaskApi.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +49,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddScoped<IExceptionToResponseMapper, ExceptionToResponseMapper>();
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+
+
 // Agregar servicios de la capa de Infrastructure
 builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -69,6 +80,8 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    await app.Services.InitializeInfrastructureAsync();
 }
 
 //app.UseSerilogRequestLogging();

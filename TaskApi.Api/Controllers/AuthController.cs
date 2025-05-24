@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
+using TaskApi.Application.Features.Auth.Commands.Login;
 using TaskApi.Application.Features.Users.Commands.RefreshToken;
 using TaskApi.Application.Interfaces;
 
@@ -43,23 +44,9 @@ namespace TaskApi.Api.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginRequest request)
+        public async Task<IActionResult> Login(LoginCommand request)
         {
-            var result = await _identityService.LoginAsync(request.Email, request.Password);
-
-            if (!result.Success)
-            {
-                return BadRequest(new { message = "Email o contraseña incorrectos" });
-            }
-
-            SetRefreshTokenInCookie(result.RefreshToken);
-
-            return Ok(new
-            {
-                userId = result.UserId,
-                token = result.Token,
-                refreshToken = result.RefreshToken
-            });
+            return Ok(await _mediator.Send(request));
         }
 
         [HttpPost("refresh")]

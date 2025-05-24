@@ -9,6 +9,6 @@ namespace TaskApi.Application.Features.Auth.DTOs
 {
     public class LoginResult : AuthenticationResult
     {
-        public string UserId { get; set; } = default!;
+        public Guid UserId { get; set; } = default!;
     }
 }

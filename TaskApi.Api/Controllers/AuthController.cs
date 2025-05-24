@@ -2,8 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
+using Swashbuckle.AspNetCore.Filters;
 using System.Net.Http;
+using TaskApi.Api.Examples.Auth;
 using TaskApi.Application.Features.Auth.Commands.Login;
+using TaskApi.Application.Features.Auth.DTOs;
 using TaskApi.Application.Features.Users.Commands.RefreshToken;
 using TaskApi.Application.Interfaces;
 
@@ -25,7 +29,7 @@ namespace TaskApi.Api.Controllers
             _mediator = mediator;
             _httpContext = httpContext;
         }
-
+        
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequest request)
         {
@@ -43,6 +47,17 @@ namespace TaskApi.Api.Controllers
             return Ok(new { userId = result.UserId });
         }
 
+        [SwaggerOperation(
+            Summary = "Iniciar sesion",
+            Description = "Iniciar sesion y devuelve el token de acceso",
+            OperationId = "LoginUser",
+            Tags = new[] { "Auth" }
+            )]
+
+        [SwaggerResponse(200, "El usuario se ha iniciado sesion correctamente")]
+        [SwaggerResponseExample(200, typeof(LoginResultExample))]
+        [SwaggerResponse(401, "El usuario no se ha iniciado sesion correctamente. Ver detalles en el response.")]
+        [SwaggerResponse(400, "Datos invalidos. Ver detalles en el response.")]
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginCommand request)
         {

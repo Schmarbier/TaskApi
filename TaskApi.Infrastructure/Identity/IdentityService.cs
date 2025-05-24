@@ -24,12 +24,12 @@ namespace TaskApi.Infrastructure.Identity
             _tokenService = tokenService;
         }
 
-        public async Task<(bool Success, string UserId)> CreateUserAsync(string username, string email, string password, string role)
+        public async Task<(bool Success, Guid UserId)> CreateUserAsync(string username, string email, string password, string role)
         {
             // Verificar si el usuario ya existe
             if (await _context.Users.AnyAsync(u => u.Email == email || u.Username == username))
             {
-                return (false, string.Empty);
+                return (false, Guid.Empty);
             }
 
             // Crear hash de la contraseña
@@ -48,10 +48,10 @@ namespace TaskApi.Infrastructure.Identity
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return (true, user.Id.ToString());
+            return (true, user.Id);
         }
 
-        public async Task<(bool Success, string UserId, string Token, string RefreshToken)> LoginAsync(string email, string password)
+        public async Task<(bool Success, Guid UserId, string Token, string RefreshToken)> LoginAsync(string email, string password)
         {
             var user = await _context.Users
                 .Include(u => u.RefreshTokens)
@@ -59,7 +59,7 @@ namespace TaskApi.Infrastructure.Identity
 
             if (user == null || !VerifyPassword(password, user.PasswordHash))
             {
-                return (false, string.Empty, string.Empty, string.Empty);
+                return (false, Guid.Empty, string.Empty, string.Empty);
             }
 
             // Generar token JWT
@@ -76,17 +76,17 @@ namespace TaskApi.Infrastructure.Identity
 
             await _context.SaveChangesAsync();
 
-            return (true, user.Id.ToString(), token, refreshToken.Token);
+            return (true, user.Id, token, refreshToken.Token);
         }
 
-        public async Task<(bool Success, string UserId, string Token, string RefreshToken)> RefreshTokenAsync(string token, string refreshToken)
+        public async Task<(bool Success, Guid UserId, string Token, string RefreshToken)> RefreshTokenAsync(string token, string refreshToken)
         {
             var principal = _tokenService.GetPrincipalFromExpiredToken(token);
             var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId))
             {
-                return (false, string.Empty, string.Empty, string.Empty);
+                return (false, Guid.Empty, string.Empty, string.Empty);
             }
 
             var user = await _context.Users
@@ -95,14 +95,14 @@ namespace TaskApi.Infrastructure.Identity
 
             if (user == null)
             {
-                return (false, string.Empty, string.Empty, string.Empty);
+                return (false, Guid.Empty, string.Empty, string.Empty);
             }
 
             var existingRefreshToken = user.RefreshTokens.SingleOrDefault(x => x.Token == refreshToken);
 
             if (existingRefreshToken == null || !existingRefreshToken.IsActive)
             {
-                return (false, string.Empty, string.Empty, string.Empty);
+                return (false, Guid.Empty, string.Empty, string.Empty);
             }
 
             // Revocar el token actual
@@ -121,7 +121,7 @@ namespace TaskApi.Infrastructure.Identity
             // Generar nuevo JWT
             var newToken = _tokenService.GenerateJwtToken(user);
 
-            return (true, user.Id.ToString(), newToken, newRefreshToken.Token);
+            return (true, user.Id, newToken, newRefreshToken.Token);
         }
 
         public async Task<bool> RevokeRefreshTokenAsync(string refreshToken)

@@ -11,8 +11,13 @@ namespace TaskApi.Application.Features.Auth.Commands.Login
     {
         public LoginCommandValidator()
         {
-            RuleFor(x => x.Email).NotEmpty();
-            RuleFor(x => x.Password).NotEmpty();
+            RuleFor(x => x.Email)
+                .NotEmpty().WithMessage("El email no debe ser nulo")
+                .NotNull().WithMessage("El email es requerido")
+                .EmailAddress().WithMessage("El email no tiene un formato valido");
+            RuleFor(x => x.Password)
+                .NotEmpty().WithMessage("La contraseña no debe ser nula")
+                .NotNull().WithMessage("La contraseña es requerida");
         }
     }
 }

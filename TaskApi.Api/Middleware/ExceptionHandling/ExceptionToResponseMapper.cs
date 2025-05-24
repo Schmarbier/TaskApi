@@ -1,6 +1,7 @@
 ﻿
 using TaskApi.Api.Middleware.ExceptionHandling.Models;
 using TaskApi.Application.Common.Exceptions;
+using TaskApi.Api.Constants;
 using TaskApi.Domain.Exceptions;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
 
@@ -12,14 +13,12 @@ namespace TaskApi.Api.Middleware.ExceptionHandling
         {
             var correlationId = context.TraceIdentifier;
 
-            Console.WriteLine($"Excepción recibida: {exception.GetType()}");
-
             return exception switch
             {
                 ValidationException validationException
                 => new ErrorResponse(400, new
                 {
-                    message = "Se encontraron errores de validación",
+                    message = ErrorMessages.ValidationFailed,
                     errors = validationException.Errors
                 }),
 
@@ -37,7 +36,7 @@ namespace TaskApi.Api.Middleware.ExceptionHandling
 
                 _ => new ErrorResponse(500, new
                 {
-                    message = "Ocurrió un error inesperado. Si el error persiste, comuníquese con el administrador.",
+                    message = ErrorMessages.UnexpectedError,
                     correlationId
                 })
             };

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Swashbuckle.AspNetCore.Filters;
+using TaskApi.Api.Examples.Auth;
 using TaskApi.Api.Middleware;
 using TaskApi.Api.Middleware.ExceptionHandling;
 using TaskApi.Application;
@@ -20,9 +22,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Task Manager API", Version = "v1" });
 
-    // Configuración de seguridad para Swagger
+    c.EnableAnnotations();
+    c.ExampleFilters();
+
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
